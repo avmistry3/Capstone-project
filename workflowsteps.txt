@@ -1,0 +1,71 @@
+
+Downloading and Installing Spark
+copy this link and use wget to download the package in your Ubuntu environment.
+
+wget https://dlcdn.apache.org/spark/spark-3.1.3/spark-3.1.3-bin-hadoop3.2.tgz
+unzip the downloaded spark archive,
+
+tar zxvf spark-3.1.3-bin-hadoop3.2.tgz
+
+ unzipping the file you will get the following folder → spark-3.1.3-bin-hadoop3.2.
+
+pyspark
+Next, to go to src folder can call zip -r job.zip . this will create a zip file that contain all the logic of our pipeline.
+
+ cd to spark-3.1.3-bin-hadoop3.2 folder,  to switch to root user before submitting the test job and don’t forget to replace <> with proper user name and workspace before running the below command.
+
+bin/spark-submit --master local --py-files /home/<user_name>/<workspace_folder>/pyspark/src/job.zip /home/<user_name>/<workspace_folder>/pyspark/workflow_entry.py -p "{'input_path':'/home/<user_name>/data/banking.csv', 'name':'class_demo', 'file_type':'txt', 'output_path':'/home/<user_name>/data/pyspark_output/', 'partition_column':'job'}"
+------------------------------------------------------------------------------------------------------------------
+
+AWS
+launch  EC2 , key pair, download pem file
+move the downloaded pem file into .ssh folder and change permission for the key from wide open to more restricted.
+
+mv ~/Downloads/my_key.pem ~/.ssh
+
+chmod 400 ~/.ssh/my_key.pem
+
+ssh -i ~/.ssh/my_key.pem ec2-user@public ip4 address
+sudo yum update -y
+sudo yum install docker
+sudo service docker start
+sudo usermod -a -G docker ec2-user
+sudo chmod 777 /var/run/docker.sock
+
+ to install Git and clone airflow image
+
+sudo yum install git -y
+git clone https://github.com/puckel/docker-airflow.git
+We will be using docker-compose-CeleryExecutor.yml to deploy Airflow with docker compose. So, now we need to install docker compose.
+
+sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+Now, we can deploy Airflow with docker compose.
+
+docker-compose -f docker-compose-CeleryExecutor.yml up -d
+Our Airflow image will be using port 8080, so we need to enable it under inbound rules for the security group that our instance is using under Security Groups.
+Airflow UI → http://:8080/admin/
+create S3 input bucket
+modify airflow image
+FROM puckel/docker-airflow:1.10.9
+
+RUN pip install boto3
+run the following command to build a modified image.
+docker build -f DockerfileBoto3 -t <your_name_or_your_docker_hub_user_name>/airflow-boto3 .
+to edit docker-compose-CeleryExecutor.yml file and replace puckel/docker-airflow:1.10.9 the new airflow image (/airflow-boto3) that we just built. Additionally, we need to add an extra variable AWS_DEFAULT_REGION under webserver → environment, flower → environment, scheduler → environment, worker → environment and set it to us-east-1, restart Airflow docker containers after. To restart docker containers with the new image we need to run the following docker-compose commands.
+
+docker-compose -f docker-compose-CeleryExecutor.yml down
+docker-compose -f docker-compose-CeleryExecutor.yml up -d
+
+ Create EMR Cluster
+ Create Airflow DAG - airflow_dag.py
+ Invoke Airflow Pipeline
+upload csv file in bucket
+check output folder in bucket
+Create Glue Crawler, add crawler
+Explore Data with Athena
+
+ ------------------------------------------------------------
+
+
